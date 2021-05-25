@@ -2,7 +2,10 @@ package magmasc
 
 import (
 	"context"
+	"fmt"
 	"net/url"
+
+	"github.com/rcrowley/go-metrics"
 
 	chainstate "0chain.net/chaincore/chain/state"
 	sci "0chain.net/chaincore/smartcontractinterface"
@@ -36,10 +39,19 @@ func NewMagmaSmartContract() sci.SmartContractInterface {
 	return sscCopy
 }
 
+// These contants represents SmartContractExecutionStats keys, used to identify smart contract functions.
+const (
+	// registerConsumer represents name for Consumer's registration function.
+	registerConsumer = "register_consumer"
+)
+
 // setSC sets provided smartcontractinterface.SmartContract to corresponding MagmaSmartContract field
 // and configures RestHandlers and SmartContractExecutionStats.
 func (msc *MagmaSmartContract) setSC(sc *sci.SmartContract) {
 	msc.SmartContract = sc
+
+	// consumer
+	msc.SmartContract.SmartContractExecutionStats[registerConsumer] = metrics.GetOrRegisterTimer(fmt.Sprintf("sc:%v:func:%v", msc.ID, registerConsumer), nil)
 }
 
 // GetName implements smartcontractinterface.SmartContractInterface.
@@ -60,6 +72,12 @@ func (msc *MagmaSmartContract) GetRestPoints() map[string]sci.SmartContractRestH
 // Execute implements smartcontractinterface.SmartContractInterface.
 func (msc *MagmaSmartContract) Execute(t *transaction.Transaction,
 	funcName string, _ []byte, balances chainstate.StateContextI) (string, error) {
+
+	switch funcName {
+	// consumer
+	case registerConsumer:
+		return msc.registerConsumer(t, balances)
+	}
 
 	return "", common.NewError("invalid_function_name", "function with provided name is not supported")
 }
