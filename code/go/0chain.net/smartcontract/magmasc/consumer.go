@@ -27,7 +27,7 @@ func (msc *MagmaSmartContract) registerConsumer(txn *transaction.Transaction, ba
 			ID: txn.ClientID,
 		}
 	)
-	if containsConsumer(msc.ID, consumer, consumers, balances) {
+	if containsNode(msc.ID, &consumer, consumers, balances) {
 		return "", common.NewErrorf(errCode, "consumer with id=`%s` already exist", consumer.ID)
 	}
 
@@ -43,7 +43,7 @@ func (msc *MagmaSmartContract) registerConsumer(txn *transaction.Transaction, ba
 	}
 
 	// save the new consumer
-	_, err = balances.InsertTrieNode(consumer.GetKey(msc.ID), &consumer)
+	_, err = balances.InsertTrieNode(nodeKey(msc.ID, consumer.ID), &consumer)
 	if err != nil {
 		return "", common.NewErrorf(errCode, "saving consumer failed with error: %v ", err)
 	}
@@ -51,12 +51,11 @@ func (msc *MagmaSmartContract) registerConsumer(txn *transaction.Transaction, ba
 	return "", nil
 }
 
-// extractConsumers extracts all Consumers represented in JSON bytes stored in state.StateContextI with AllConsumersKey.
+// extractConsumers extracts all consumers represented in JSON bytes stored in state.StateContextI with AllConsumersKey.
 //
-// extractConsumers returns err if state.StateContextI does not contain Consumers or stored Consumers bytes have invalid
-// format.
-func extractConsumers(balances state.StateContextI) (*Consumers, error) {
-	consumers := &Consumers{}
+// extractConsumers returns err if state.StateContextI does not contain consumers or stored bytes have invalid format.
+func extractConsumers(balances state.StateContextI) (*Nodes, error) {
+	consumers := &Nodes{}
 	consumersBytes, err := balances.GetTrieNode(AllConsumersKey)
 	if consumersBytes == nil || err != nil {
 		return consumers, err
@@ -67,23 +66,6 @@ func extractConsumers(balances state.StateContextI) (*Consumers, error) {
 		return nil, fmt.Errorf("%w: %s", common.ErrDecoding, err)
 	}
 	return consumers, nil
-}
-
-// containsConsumer looks for provided Consumer in provided Consumers and state.StateContextI.
-// If Consumer will be found it returns true, else false.
-func containsConsumer(scKey string, consumer Consumer, consumers *Consumers, balances state.StateContextI) bool {
-	for _, b := range consumers.Nodes {
-		if b.ID == consumer.ID || b.BaseURL == consumer.BaseURL {
-			return true
-		}
-	}
-
-	_, err := balances.GetTrieNode(consumer.GetKey(scKey))
-	if err == nil {
-		return true
-	}
-
-	return false
 }
 
 // createAndInsertConsumerStakePool creates stakePool for Consumer and saves it in state.StateContextI.

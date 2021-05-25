@@ -39,10 +39,13 @@ func NewMagmaSmartContract() sci.SmartContractInterface {
 	return sscCopy
 }
 
-// These contants represents SmartContractExecutionStats keys, used to identify smart contract functions.
+// These constants represents SmartContractExecutionStats keys, used to identify smart contract functions.
 const (
 	// registerConsumer represents name for Consumer's registration function.
 	registerConsumer = "register_consumer"
+
+	// registerProvider represents name for Provider's registration function.
+	registerProvider = "register_provider"
 )
 
 // setSC sets provided smartcontractinterface.SmartContract to corresponding MagmaSmartContract field
@@ -51,7 +54,11 @@ func (msc *MagmaSmartContract) setSC(sc *sci.SmartContract) {
 	msc.SmartContract = sc
 
 	// consumer
-	msc.SmartContract.SmartContractExecutionStats[registerConsumer] = metrics.GetOrRegisterTimer(fmt.Sprintf("sc:%v:func:%v", msc.ID, registerConsumer), nil)
+	msc.SmartContractExecutionStats[registerConsumer] = metrics.GetOrRegisterTimer(fmt.Sprintf("sc:%v:func:%v", msc.ID, registerConsumer), nil)
+
+	// provider
+	msc.SmartContractExecutionStats[registerProvider] = metrics.GetOrRegisterTimer(fmt.Sprintf("sc:%v:func:%v", msc.ID, registerProvider), nil)
+	msc.RestHandlers["/getProviderTerms"] = msc.getProviderTerms
 }
 
 // GetName implements smartcontractinterface.SmartContractInterface.
@@ -70,13 +77,17 @@ func (msc *MagmaSmartContract) GetRestPoints() map[string]sci.SmartContractRestH
 }
 
 // Execute implements smartcontractinterface.SmartContractInterface.
-func (msc *MagmaSmartContract) Execute(t *transaction.Transaction,
-	funcName string, _ []byte, balances chainstate.StateContextI) (string, error) {
+func (msc *MagmaSmartContract) Execute(txn *transaction.Transaction,
+	funcName string, input []byte, balances chainstate.StateContextI) (string, error) {
 
 	switch funcName {
 	// consumer
 	case registerConsumer:
-		return msc.registerConsumer(t, balances)
+		return msc.registerConsumer(txn, balances)
+
+	// provider
+	case registerProvider:
+		return msc.registerProvider(txn, input, balances)
 	}
 
 	return "", common.NewError("invalid_function_name", "function with provided name is not supported")

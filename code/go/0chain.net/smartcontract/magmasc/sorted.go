@@ -4,42 +4,42 @@ import (
 	"sort"
 )
 
-// sortedConsumers represents slice of Consumer sorted in alphabetic order by Consumer.ID.
+// sortedNodes represents slice of Node sorted in alphabetic order by ID.
 //
-// sortedConsumers allows O(logN) access.
-type sortedConsumers []*Consumer
+// sortedNodes allows O(logN) access.
+type sortedNodes []Node
 
-func (s sortedConsumers) getIndex(id string) (i int, ok bool) {
+func (s sortedNodes) getIndex(id string) (i int, ok bool) {
 	i = sort.Search(len(s), func(i int) bool {
-		return s[i].ID >= id
+		return s[i].GetID() >= id
 	})
 	if i == len(s) {
 		return // not found
 	}
-	if s[i].ID == id {
+	if s[i].GetID() == id {
 		return i, true // found
 	}
 	return // not found
 }
 
-func (s sortedConsumers) get(id string) (b *Consumer, ok bool) {
+func (s sortedNodes) get(id string) (b Node, ok bool) {
 	var i = sort.Search(len(s), func(i int) bool {
-		return s[i].ID >= id
+		return s[i].GetID() >= id
 	})
 	if i == len(s) {
 		return // not found
 	}
-	if s[i].ID == id {
+	if s[i].GetID() == id {
 		return s[i], true // found
 	}
 	return // not found
 }
 
-func (s *sortedConsumers) removeByIndex(i int) {
+func (s *sortedNodes) removeByIndex(i int) {
 	(*s) = append((*s)[:i], (*s)[i+1:]...)
 }
 
-func (s *sortedConsumers) remove(id string) (ok bool) {
+func (s *sortedNodes) remove(id string) (ok bool) {
 	var i int
 	if i, ok = s.getIndex(id); !ok {
 		return // false
@@ -48,43 +48,35 @@ func (s *sortedConsumers) remove(id string) (ok bool) {
 	return true // removed
 }
 
-func (s *sortedConsumers) add(b *Consumer) (ok bool) {
+func (s *sortedNodes) add(n Node) (ok bool) {
 	if len(*s) == 0 {
-		(*s) = append((*s), b)
+		(*s) = append((*s), n)
 		return true // added
 	}
 	var i = sort.Search(len(*s), func(i int) bool {
-		return (*s)[i].ID >= b.ID
+		return (*s)[i].GetID() >= n.GetID()
 	})
 	// out of bounds
 	if i == len(*s) {
-		(*s) = append((*s), b)
+		(*s) = append((*s), n)
 		return true // added
 	}
 	// the same
-	if (*s)[i].ID == b.ID {
-		(*s)[i] = b  // replace
+	if (*s)[i].GetID() == n.GetID() {
+		(*s)[i] = n  // replace
 		return false // already have
 	}
 	// next
-	(*s) = append((*s)[:i], append([]*Consumer{b}, (*s)[i:]...)...)
+	(*s) = append((*s)[:i], append([]Node{n}, (*s)[i:]...)...)
 	return true // added
 }
 
 // replace if found
-func (s *sortedConsumers) update(b *Consumer) (ok bool) {
+func (s *sortedNodes) update(b Node) (ok bool) {
 	var i int
-	if i, ok = s.getIndex(b.ID); !ok {
+	if i, ok = s.getIndex(b.GetID()); !ok {
 		return
 	}
 	(*s)[i] = b // replace
-	return
-}
-
-func (s sortedConsumers) copy() (cp []*Consumer) {
-	cp = make([]*Consumer, 0, len(s))
-	for _, b := range s {
-		cp = append(cp, b)
-	}
 	return
 }
