@@ -9,6 +9,7 @@ import (
 	sci "0chain.net/chaincore/smartcontractinterface"
 	"0chain.net/smartcontract/faucetsc"
 	"0chain.net/smartcontract/interestpoolsc"
+	"0chain.net/smartcontract/magmasc"
 	"0chain.net/smartcontract/minersc"
 	"0chain.net/smartcontract/multisigsc"
 	"0chain.net/smartcontract/storagesc"
@@ -26,6 +27,7 @@ const (
 	Multisig
 	Miner
 	Vesting
+	Magma
 )
 
 var (
@@ -37,16 +39,18 @@ var (
 		"multisig",
 		"miner",
 		"vesting",
+		magmasc.Name,
 	}
 
 	SCCode = map[string]SCName{
-		"faucet":   Faucet,
-		"storage":  Storage,
-		"zrc20":    Zrc20,
-		"interest": Interest,
-		"multisig": Multisig,
-		"miner":    Miner,
-		"vesting":  Vesting,
+		"faucet":     Faucet,
+		"storage":    Storage,
+		"zrc20":      Zrc20,
+		"interest":   Interest,
+		"multisig":   Multisig,
+		"miner":      Miner,
+		"vesting":    Vesting,
+		magmasc.Name: Magma,
 	}
 )
 
@@ -80,6 +84,9 @@ func newSmartContract(name string) sci.SmartContractInterface {
 		return minersc.NewMinerSmartContract()
 	case Vesting:
 		return vestingsc.NewVestingSmartContract()
+	case Magma:
+		return magmasc.NewMagmaSmartContract()
+
 	default:
 		return nil
 	}
