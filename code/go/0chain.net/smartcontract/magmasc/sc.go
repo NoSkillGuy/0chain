@@ -41,10 +41,14 @@ func NewMagmaSmartContract() sci.SmartContractInterface {
 
 // These constants represents SmartContractExecutionStats keys, used to identify smart contract functions.
 const (
-	// registerConsumer represents name for Consumer's registration function.
+	// registerConsumer represents name for Consumer's registration MagmaSmartContract function.
 	registerConsumer = "register_consumer"
 
-	// registerProvider represents name for Provider's registration function.
+	// acceptTerms represents the name of MagmaSmartContract function.
+	// When function is called it means that Consumer accepted Provider Terms.
+	acceptTerms = "accept_terms"
+
+	// registerProvider represents name for Provider's registration MagmaSmartContract function.
 	registerProvider = "register_provider"
 )
 
@@ -55,6 +59,7 @@ func (msc *MagmaSmartContract) setSC(sc *sci.SmartContract) {
 
 	// consumer
 	msc.SmartContractExecutionStats[registerConsumer] = metrics.GetOrRegisterTimer(fmt.Sprintf("sc:%v:func:%v", msc.ID, registerConsumer), nil)
+	msc.SmartContractExecutionStats[acceptTerms] = metrics.GetOrRegisterTimer(fmt.Sprintf("sc:%v:func:%v", msc.ID, acceptTerms), nil)
 
 	// provider
 	msc.SmartContractExecutionStats[registerProvider] = metrics.GetOrRegisterTimer(fmt.Sprintf("sc:%v:func:%v", msc.ID, registerProvider), nil)
@@ -84,6 +89,8 @@ func (msc *MagmaSmartContract) Execute(txn *transaction.Transaction,
 	// consumer
 	case registerConsumer:
 		return msc.registerConsumer(txn, balances)
+	case acceptTerms:
+		return msc.acceptTerms(txn, input, balances)
 
 	// provider
 	case registerProvider:

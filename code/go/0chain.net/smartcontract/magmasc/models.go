@@ -134,3 +134,46 @@ func containsNode(scKey string, node Node, consumers *Nodes, balances state.Stat
 
 	return false
 }
+
+type (
+	// Acknowledgment contains the necessary data obtained when the consumer accepts the provider Terms.
+	//
+	// Acknowledgment stores in the state of the blockchain as a result of performing the acceptTerms
+	// MagmaSmartContract function.
+	Acknowledgment struct {
+		ID            string `json:"id"`
+		ConsumerID    string `json:"consumer_id"`
+		ProviderID    string `json:"provider_id"`
+		AccessPointID string `json:"access_point_id"`
+		SessionID     string `json:"session_id"`
+	}
+)
+
+// acknowledgmentKey returns a specific key for Acknowledgment.
+// scKey is an ID of magma smart contract and id is and ID of Acknowledgment.
+//
+// Should be used while inserting, removing or getting Node in state.StateContextI
+func acknowledgmentKey(ssKey, id string) datastore.Key {
+	return ssKey + id
+}
+
+// isValid checks Acknowledgment.ProviderID, Acknowledgment.AccessPointID, Acknowledgment.SessionID for emptiness.
+// If any field is empty isValid return false, else true.
+func (a *Acknowledgment) isValid() bool {
+	return a.ProviderID != "" && a.AccessPointID != "" && a.SessionID != ""
+}
+
+// Decode implements util.Serializable interface.
+func (a *Acknowledgment) Decode(input []byte) error {
+	err := json.Unmarshal(input, a)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Encode implements util.Serializable interface.
+func (a *Acknowledgment) Encode() []byte {
+	buff, _ := json.Marshal(a)
+	return buff
+}
