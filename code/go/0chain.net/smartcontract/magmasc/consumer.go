@@ -48,7 +48,7 @@ func (msc *MagmaSmartContract) registerConsumer(txn *transaction.Transaction, ba
 		return "", common.NewErrorf(errCode, "saving consumer failed with error: %v ", err)
 	}
 
-	return "", nil
+	return string(consumer.Encode()), nil
 }
 
 // extractConsumers extracts all consumers represented in JSON bytes stored in state.StateContextI with AllConsumersKey.

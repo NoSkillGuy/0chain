@@ -10,7 +10,7 @@ type stakePool struct {
 	*tokenpool.ZcnPool
 }
 
-// stakePoolKey represents uniq stakePool key used to saving stakePool in state.StateContextI.
+// stakePoolKey returns uniq stakePool key used to saving stakePool in state.StateContextI.
 //
 // Resulting key represents concatenated smart contract key, ":stakepool:" and node id.
 func stakePoolKey(scKey, id string) datastore.Key {

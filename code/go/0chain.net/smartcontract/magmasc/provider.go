@@ -27,7 +27,7 @@ func (msc *MagmaSmartContract) registerProvider(txn *transaction.Transaction,
 
 	provider := Provider{}
 	if err := json.Unmarshal(input, &provider); err != nil {
-		return "", err
+		return "", common.NewErrorf(errCode, "unmarshalling input failed with err: %v", err)
 	}
 	provider.ID = txn.ClientID
 	if containsNode(msc.ID, &provider, providers, balances) {
@@ -47,7 +47,7 @@ func (msc *MagmaSmartContract) registerProvider(txn *transaction.Transaction,
 		return "", common.NewErrorf(errCode, "saving provider failed with error: %v ", err)
 	}
 
-	return "", nil
+	return string(provider.Encode()), nil
 }
 
 // extractProviders extracts all provider Nodes represented in JSON bytes stored in state.StateContextI with AllProvidersKey.
@@ -68,6 +68,8 @@ func extractProviders(balances state.StateContextI) (*Nodes, error) {
 	return consumers, nil
 }
 
+// getProviderTerms represents MagmaSmartContract handler. getProviderTerms looks for Provider with id, passed in params url.Values,
+// in provided state.StateContextI and returns Provider.Terms.
 func (msc *MagmaSmartContract) getProviderTerms(_ context.Context, params url.Values, balances state.StateContextI) (interface{}, error) {
 	id := params.Get("provider_id")
 
@@ -80,6 +82,9 @@ func (msc *MagmaSmartContract) getProviderTerms(_ context.Context, params url.Va
 	return provider.Terms, nil
 }
 
+// extractProviders extracts Provider represented in JSON bytes stored in state.StateContextI.
+//
+// extractProviders returns err if state.StateContextI does not contain Nodes or stored Nodes bytes have invalid format.
 func extractProvider(id, scKey string, balances state.StateContextI) (*Provider, error) {
 	providerNV, err := balances.GetTrieNode(nodeKey(scKey, id))
 	if err != nil {

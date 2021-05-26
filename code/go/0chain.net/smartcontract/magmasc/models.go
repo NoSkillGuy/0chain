@@ -29,11 +29,13 @@ type (
 		Terms Terms  `json:"terms"`
 	}
 
+	// Terms represents information of Provider's services.
 	Terms struct {
-		Price int64 `json:"price"`
+		Price int64 `json:"price"` // per MB
 		QoS   QoS   `json:"qos"`
 	}
 
+	// QoS represents a Quality of Service and contains uploading and downloading speed represented in megabytes per second.
 	QoS struct {
 		DownloadMBPS int64 `json:"download_mbps"`
 		UploadMBPS   int64 `json:"upload_mbps"`
