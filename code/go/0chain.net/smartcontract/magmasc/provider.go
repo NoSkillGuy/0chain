@@ -9,6 +9,7 @@ import (
 	"0chain.net/chaincore/chain/state"
 	"0chain.net/chaincore/transaction"
 	"0chain.net/core/common"
+	"0chain.net/core/util"
 	"0chain.net/smartcontract"
 )
 
@@ -30,7 +31,7 @@ func (msc *MagmaSmartContract) registerProvider(txn *transaction.Transaction,
 		return "", common.NewErrorf(errCode, "unmarshalling input failed with err: %v", err)
 	}
 	provider.ID = txn.ClientID
-	if containsNode(msc.ID, &provider, providers, balances) {
+	if containsProvider(msc.ID, provider, providers, balances) {
 		return "", common.NewErrorf(errCode, "provider with id=`%s` already exist", provider.ID)
 	}
 
@@ -42,7 +43,7 @@ func (msc *MagmaSmartContract) registerProvider(txn *transaction.Transaction,
 	}
 
 	// save the new provider
-	_, err = balances.InsertTrieNode(nodeKey(msc.ID, provider.ID), &provider)
+	_, err = balances.InsertTrieNode(nodeKey(msc.ID, provider.ID, providerType), &provider)
 	if err != nil {
 		return "", common.NewErrorf(errCode, "saving provider failed with error: %v ", err)
 	}
@@ -54,18 +55,21 @@ func (msc *MagmaSmartContract) registerProvider(txn *transaction.Transaction,
 //
 // extractProviders returns err if state.StateContextI does not contain Nodes or stored Nodes bytes have invalid
 // format.
-func extractProviders(balances state.StateContextI) (*Nodes, error) {
-	consumers := &Nodes{}
-	consumersBytes, err := balances.GetTrieNode(AllProvidersKey)
-	if consumersBytes == nil || err != nil {
-		return consumers, err
+func extractProviders(balances state.StateContextI) (*Providers, error) {
+	providers := &Providers{}
+	providerNV, err := balances.GetTrieNode(AllProvidersKey)
+	if err != nil && err != util.ErrValueNotPresent {
+		return nil, err
+	}
+	if err == util.ErrValueNotPresent || providerNV == nil {
+		return providers, nil
 	}
 
-	err = json.Unmarshal(consumersBytes.Encode(), consumers)
-	if err != nil {
+	if err := json.Unmarshal(providerNV.Encode(), providers); err != nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrDecoding, err)
 	}
-	return consumers, nil
+
+	return providers, nil
 }
 
 // getProviderTerms represents MagmaSmartContract handler. getProviderTerms looks for Provider with id, passed in params url.Values,
@@ -86,7 +90,7 @@ func (msc *MagmaSmartContract) getProviderTerms(_ context.Context, params url.Va
 //
 // extractProviders returns err if state.StateContextI does not contain Nodes or stored Nodes bytes have invalid format.
 func extractProvider(id, scKey string, balances state.StateContextI) (*Provider, error) {
-	providerNV, err := balances.GetTrieNode(nodeKey(scKey, id))
+	providerNV, err := balances.GetTrieNode(nodeKey(scKey, id, providerType))
 	if err != nil {
 		return nil, err
 	}

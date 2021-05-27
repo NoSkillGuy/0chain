@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	Address = "address"
+	// Address is a SHA3-256 hex encoded hash of "magma" string. Represents address of MagmaSmartContract.
+	Address = "11f8411db41e34cea7c100f19faff32da8f3cd5a80635731cec06f32d08089be"
 
 	Name = "magma"
 )
@@ -64,6 +65,7 @@ func (msc *MagmaSmartContract) setSC(sc *sci.SmartContract) {
 	// provider
 	msc.SmartContractExecutionStats[registerProvider] = metrics.GetOrRegisterTimer(fmt.Sprintf("sc:%v:func:%v", msc.ID, registerProvider), nil)
 	msc.RestHandlers["/getProviderTerms"] = msc.getProviderTerms
+	msc.SmartContractExecutionStats[acceptTerms] = metrics.GetOrRegisterTimer(fmt.Sprintf("sc:%v:func:%v", msc.ID, acceptTerms), nil)
 }
 
 // GetName implements smartcontractinterface.SmartContractInterface.

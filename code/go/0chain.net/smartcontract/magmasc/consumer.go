@@ -15,7 +15,7 @@ import (
 // registerConsumer creates Consumer with Consumer.ID (equals to transaction client ID),
 // adds it to all Consumers list, creates stakePool for new Consumer and saves results in provided state.StateContextI.
 func (msc *MagmaSmartContract) registerConsumer(txn *transaction.Transaction, balances state.StateContextI) (string, error) {
-	const errCode = "add_consumer"
+	const errCode = "register_consumer"
 
 	consumers, err := extractConsumers(balances)
 	if err != nil {
@@ -27,7 +27,7 @@ func (msc *MagmaSmartContract) registerConsumer(txn *transaction.Transaction, ba
 			ID: txn.ClientID,
 		}
 	)
-	if containsNode(msc.ID, &consumer, consumers, balances) {
+	if containsConsumer(msc.ID, consumer, consumers, balances) {
 		return "", common.NewErrorf(errCode, "consumer with id=`%s` already exist", consumer.ID)
 	}
 
@@ -43,7 +43,7 @@ func (msc *MagmaSmartContract) registerConsumer(txn *transaction.Transaction, ba
 	}
 
 	// save the new consumer
-	_, err = balances.InsertTrieNode(nodeKey(msc.ID, consumer.ID), &consumer)
+	_, err = balances.InsertTrieNode(nodeKey(msc.ID, consumer.ID, consumerType), &consumer)
 	if err != nil {
 		return "", common.NewErrorf(errCode, "saving consumer failed with error: %v ", err)
 	}
@@ -54,17 +54,20 @@ func (msc *MagmaSmartContract) registerConsumer(txn *transaction.Transaction, ba
 // extractConsumers extracts all consumers represented in JSON bytes stored in state.StateContextI with AllConsumersKey.
 //
 // extractConsumers returns err if state.StateContextI does not contain consumers or stored bytes have invalid format.
-func extractConsumers(balances state.StateContextI) (*Nodes, error) {
-	consumers := &Nodes{}
-	consumersBytes, err := balances.GetTrieNode(AllConsumersKey)
-	if consumersBytes == nil || err != nil {
-		return consumers, err
+func extractConsumers(balances state.StateContextI) (*Consumers, error) {
+	consumers := &Consumers{}
+	consumerTN, err := balances.GetTrieNode(AllConsumersKey)
+	if err != nil && err != util.ErrValueNotPresent {
+		return nil, err
+	}
+	if err == util.ErrValueNotPresent || consumerTN == nil {
+		return consumers, nil
 	}
 
-	err = json.Unmarshal(consumersBytes.Encode(), consumers)
-	if err != nil {
+	if err := json.Unmarshal(consumerTN.Encode(), consumers); err != nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrDecoding, err)
 	}
+
 	return consumers, nil
 }
 
@@ -78,7 +81,7 @@ func createAndInsertConsumerStakePool(consumerID, scKey string, balances state.S
 		return ErrStakePoolExist
 	}
 
-	sp := new(stakePool)
+	sp := newStakePool()
 	sp.ID = consumerID
 
 	_, err = balances.InsertTrieNode(stakePoolKey(scKey, consumerID), sp)

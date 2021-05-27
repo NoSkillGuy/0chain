@@ -2,22 +2,13 @@ package magmasc
 
 import (
 	"encoding/json"
+	"strings"
 
 	"0chain.net/chaincore/chain/state"
 	"0chain.net/core/datastore"
-	"0chain.net/core/util"
 )
 
 type (
-	// Node represents interface for nodes types with magma smart contract may interact.
-	Node interface {
-		// GetID returns ID of Node.
-		GetID() string
-
-		// Serializable is an embedded interface.
-		util.Serializable
-	}
-
 	// Consumer represents consumers node stored in block chain.
 	Consumer struct {
 		ID string `json:"id"`
@@ -42,25 +33,30 @@ type (
 	}
 )
 
-var (
-	// Ensure Consumer implements Node.
-	_ Node = (*Consumer)(nil)
+const (
+	// providerType is a type of Provider's node.
+	providerType = "provider"
 
-	// Ensure Provider implements Node.
-	_ Node = (*Provider)(nil)
+	// consumerType is a type of Consumer's node.
+	consumerType = "consumer"
 )
 
 // nodeKey returns a specific key for Node interacting with magma smart contract.
 // scKey is an ID of magma smart contract and nodeID is and ID of Node.
 //
 // Should be used while inserting, removing or getting Node in state.StateContextI
-func nodeKey(scKey, nodeID string) datastore.Key {
-	return scKey + nodeID
+func nodeKey(scKey, nodeID, nodeType string) datastore.Key {
+	return strings.Join([]string{scKey, nodeType, nodeID}, ":")
 }
 
 // GetID returns Consumer.ID.
 func (c *Consumer) GetID() string {
 	return c.ID
+}
+
+// GetType returns Consumer's type.
+func (c *Consumer) GetType() string {
+	return consumerType
 }
 
 // Encode implements util.Serializable interface.
@@ -71,16 +67,17 @@ func (c *Consumer) Encode() []byte {
 
 // Decode implements util.Serializable interface.
 func (c *Consumer) Decode(input []byte) error {
-	err := json.Unmarshal(input, c)
-	if err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(input, c)
 }
 
 // GetID returns Provider.ID.
 func (p *Provider) GetID() string {
 	return p.ID
+}
+
+// GetType returns Provider's type.
+func (p *Provider) GetType() string {
+	return providerType
 }
 
 // Encode implements util.Serializable interface.
@@ -91,48 +88,77 @@ func (p *Provider) Encode() []byte {
 
 // Decode implements util.Serializable interface.
 func (p *Provider) Decode(input []byte) error {
-	err := json.Unmarshal(input, p)
-	if err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(input, p)
 }
 
-// Nodes represent sorted in alphabetic order by ID nodes.
-type Nodes struct {
-	Nodes sortedNodes
-}
-
-// Decode implements util.Serializable interface.
-func (cs *Nodes) Decode(input []byte) error {
-	err := json.Unmarshal(input, cs)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// Encode implements util.Serializable interface.
-func (cs *Nodes) Encode() []byte {
-	buff, _ := json.Marshal(cs)
-	return buff
-}
-
-// containsNode looks for provided Node in provided Nodes and state.StateContextI.
-// If Node will be found it returns true, else false.
-func containsNode(scKey string, node Node, consumers *Nodes, balances state.StateContextI) bool {
+// containsNode looks for provided Consumer in provided Consumers and state.StateContextI.
+// If Consumer will be found it returns true, else false.
+func containsConsumer(scKey string, consumer Consumer, consumers *Consumers, balances state.StateContextI) bool {
 	for _, c := range consumers.Nodes {
-		if c.GetID() == node.GetID() {
+		if c.GetID() == consumer.GetID() {
 			return true
 		}
 	}
 
-	_, err := balances.GetTrieNode(nodeKey(scKey, node.GetID()))
+	_, err := balances.GetTrieNode(nodeKey(scKey, consumer.GetID(), consumer.GetType()))
 	if err == nil {
 		return true
 	}
 
 	return false
+}
+
+// containsNode looks for provided Provider in provided Providers and state.StateContextI.
+// If Provider will be found it returns true, else false.
+func containsProvider(scKey string, provider Provider, providers *Providers, balances state.StateContextI) bool {
+	for _, c := range providers.Nodes {
+		if c.GetID() == provider.GetID() {
+			return true
+		}
+	}
+
+	_, err := balances.GetTrieNode(nodeKey(scKey, provider.GetID(), provider.GetType()))
+	if err == nil {
+		return true
+	}
+
+	return false
+}
+
+type (
+	// Consumers represents sorted Consumer nodes, used to inserting, removing or getting from
+	// state.StateContextI with AllConsumersKey.
+	Consumers struct {
+		Nodes sortedConsumers
+	}
+
+	// Providers represents sorted Provider nodes, used to inserting, removing or getting from
+	// state.StateContextI with AllProvidersKey.
+	Providers struct {
+		Nodes sortedProviders
+	}
+)
+
+// Encode implements util.Serializable interface.
+func (s *Consumers) Encode() []byte {
+	blob, _ := json.Marshal(s)
+	return blob
+}
+
+// Decode implements util.Serializable interface.
+func (s *Consumers) Decode(blob []byte) error {
+	return json.Unmarshal(blob, s)
+}
+
+// Encode implements util.Serializable interface.
+func (s *Providers) Encode() []byte {
+	blob, _ := json.Marshal(s)
+	return blob
+}
+
+// Decode implements util.Serializable interface.
+func (s *Providers) Decode(blob []byte) error {
+	return json.Unmarshal(blob, s)
 }
 
 type (

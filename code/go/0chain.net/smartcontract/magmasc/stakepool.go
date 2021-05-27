@@ -10,6 +10,12 @@ type stakePool struct {
 	*tokenpool.ZcnPool
 }
 
+func newStakePool() *stakePool {
+	return &stakePool{
+		ZcnPool: new(tokenpool.ZcnPool),
+	}
+}
+
 // stakePoolKey returns uniq stakePool key used to saving stakePool in state.StateContextI.
 //
 // Resulting key represents concatenated smart contract key, ":stakepool:" and node id.
