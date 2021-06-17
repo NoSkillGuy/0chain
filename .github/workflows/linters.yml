@@ -1,8 +1,10 @@
 name: linters
 
 on:
-  pull_request:
   push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   lint:
@@ -13,3 +15,10 @@ jobs:
       run: ./docker.local/bin/build.base.sh
     - name: Run Linter
       run: ./docker.local/bin/linter.sh
+  lint-sh:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: shellcheck -V
+      - name: Lint Shell scripts
+        run: tools/lint-sh.js .
